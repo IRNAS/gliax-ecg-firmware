@@ -27,3 +27,12 @@ compressBuffer[2251] 8 bit unsigned data points
 
 Checksum is calculated over whole data - Packetizer::Header + ECGHeader + ECG data
 
+Sending Package Format:
+ecgPredictor holds previous values of all ADC channels. Initally, all channels are 0.
+All channels are read through ADS1298 module and then passed to compressor (DifferenceEcgCompressor).
+In the compressor, predictor values are subtracted from current values of ECG data. If difference is bigger than 8 bits,
+only difference comparing to previous value is sent. If difference is sent, it is preceded with bit value 0. In
+case difference is bigger than 8 bits, then whole value is sent with maximum of 19 bits. In case when whole value is
+sent, it is preceded with bit value 1. In this way, amount of traffic is reduced.
+All the bits required to be sent are pushed to fifo which is sent over Bluetooth - ECG Data
+
