@@ -1,0 +1,29 @@
+Most of the preparation and actual sending of packets is done in the file ECGSender.cpp in the function ECGSender::send()
+
+Whole packet is sent over Bluetooth (we will send over some kind of USB interface) in following format:
+1. Header (which consists of Packetizer::Header and ECGHeader)
+2. ECG data which is held in compressBuffer
+3. Checksum (16-bit) which is calculated over all data above (Header + compressBuffer)
+
+Header cosists of following fields
+Packetizer::Header            Value
+  32 bit signature            0x41544144
+  16 bit length               ADS1298::instance().getAvailableData() + sizeof(ECGHeader) - length of ECGHeader and Data
+  8  bit version              0
+  8  bit type                 0 (ECG type, which converts to 0)
+  32 bit packetId             Starts from 0 and increased
+  8  bit reserved             0 
+  8  bit headerChecksum       Checksum is calculated live
+See function Packetizer::startPacket()
+ECGHeader
+  8  bit channelCount         4 or 6 or 8
+  32 bit sampleCount          depends on data in circular buffer
+  32 bit numBits              Initially: 0, Later: Depends on number of bits in BitFifo, max 18008
+  float  lsbInMv              Initially: 0.0001430511475/6*32, Later: 0.0001430511475/gain*32, where gain = [1,2,3,4,6,8,12]
+  float  samplingFrequency    488.28125
+
+ECG data
+compressBuffer[2251] 8 bit unsigned data points
+
+Checksum is calculated over whole data - Packetizer::Header + ECGHeader + ECG data
+
