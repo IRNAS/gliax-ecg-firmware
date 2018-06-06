@@ -36,7 +36,7 @@ public:
 	ECGSender(Packetizer &packetizer);
 	virtual ~ECGSender();
 
-	void send();
+	void send(Serial *pc);
 private:
 	uint8_t compressBuffer[ECG_COMPRESS_OUTPUT_BUFFER_SIZE];
 	int32_t sampleOfChannels[ecg::DifferenceEcgCompressor::maxChannels];

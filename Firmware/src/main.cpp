@@ -32,6 +32,8 @@ DigitalOut led2(PB_7);
 DigitalOut en2v8(PC_1);
 DigitalOut en3v3(PB_8);
 
+Serial pc(PA_2, PA_3);
+
 //This UART might be used for Bluetooth module, we will define new UART
 //for communication instead of Bluetooth
 //extern "C" UART_HandleTypeDef huart2;
@@ -46,17 +48,19 @@ void mainTaskCallback(void const *args)
 	osDelay(100);
 
     //Initialize UART here
+    pc.baud(115200);
+    pc.printf("Test started\n");
 
 	//Turn on ECG clock
 	TIM_HandleTypeDef tim;
 	tim.Instance = TIM1;
 	HAL_TIM_PWM_Start(&tim, TIM_CHANNEL_3);
 
-	if (!ADS1298::instance().start())
+	if (!ADS1298::instance().start(&pc))
     {
+        pc.printf("ADS1298 not started!!!\n");
 		Logger::panic("Failed to initialize ADS1298.");
     }
-
 	while(1)
     {
         
@@ -73,7 +77,7 @@ void mainTaskCallback(void const *args)
 			continue;
 		}
 
-		ecgSender.send();
+		ecgSender.send(&pc);
 	}
 }
 

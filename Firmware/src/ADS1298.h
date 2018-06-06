@@ -54,7 +54,7 @@ class ADS1298 {
 	public:
 		static ADS1298& instance();
 
-		bool start();
+		bool start(Serial *pc);
 		void stop();
 
 		void interrupt();

@@ -24,11 +24,7 @@
 #include "Logger.h"
 #include "cmsis_os.h"
 
-extern "C" SPI_HandleTypeDef hspi2;
-
-// #define TEST_SIGNAL
-
-
+SPI spi(PB_15, PB_14, PB_13, PB_12);
 
 #define HR 0x80
 
@@ -89,6 +85,10 @@ ADS1298::ADS1298():
 	dmaRunning=false;
 	//Default PGA is 6
 	currLsbInMv = ECG_LSB_IN_MV / 6.0;
+
+    //Init SPI
+    spi.format(8, 3);
+    spi.frequency(1000000);
 }
 
 ADS1298& ADS1298::instance(){
@@ -104,7 +104,7 @@ void ADS1298::writeReg(Register reg, uint8_t value){
 
 	uint8_t readBuf[3];
 
-	HAL_SPI_TransmitReceive(&hspi2, writeBuf, readBuf, 3, HAL_MAX_DELAY);
+	spi.write((const char *)writeBuf, sizeof(writeBuf), (char *)readBuf, sizeof(readBuf));
 }
 
 uint8_t ADS1298::readReg(Register reg){
@@ -115,32 +115,37 @@ uint8_t ADS1298::readReg(Register reg){
 
 	uint8_t readBuf[3];
 
-	HAL_SPI_TransmitReceive(&hspi2, writeBuf, readBuf, 3, HAL_MAX_DELAY);
+	spi.write((const char *)writeBuf, sizeof(writeBuf), (char *)readBuf, sizeof(readBuf));
 
  	return readBuf[2];
 }
 
 void ADS1298::sendCommand(Command cmd){
-	uint8_t data=cmd;
-	uint8_t dummy;
-	HAL_SPI_TransmitReceive(&hspi2, &data, &dummy, 1, HAL_MAX_DELAY);
+	char data=cmd;
+	char dummy;
+	spi.write((const char *)(&data), sizeof(data), &dummy, sizeof(dummy));
+//	HAL_SPI_TransmitReceive(&hspi2, &data, &dummy, 1, HAL_MAX_DELAY);
 }
 
-bool ADS1298::start(){
+bool ADS1298::start(Serial *pc){
 	pinStart = 0;
 	reset = 0;
 	pwdn = 0;
-
+pc->printf("Point 1\n");
 	osDelay(100);
 
-	reset = 1;
+	//reset = 1;
 	osDelay(20);
-	reset = 0;
+	reset = 1;
+    pinStart = 1;
+    pwdn = 1;
 
+pc->printf("Point 2\n");
 	osDelay(20);
 	sendCommand(CMD_SDATAC);
 	osDelay(20);
-
+    
+pc->printf("Point 3\n");
 	uint8_t id = readReg(REG_ID);
 	if ((id >> 3) != 0x12 && (id >> 3)!= 0x1A){
 		//Wrong device signature
@@ -238,7 +243,8 @@ void ADS1298::interrupt(){
 	}
 
 	dmaRunning=true;
-	HAL_SPI_TransmitReceive_DMA(&hspi2,  (uint8_t*)zeroBuffer, (uint8_t*)buffer, dataTransferSize);
+	spi.write((const char *)zeroBuffer, dataTransferSize, (char *)buffer, dataTransferSize);
+	//HAL_SPI_TransmitReceive_DMA(&hspi2,  (uint8_t*)zeroBuffer, (uint8_t*)buffer, dataTransferSize);
 }
 
 void ADS1298::stop(){

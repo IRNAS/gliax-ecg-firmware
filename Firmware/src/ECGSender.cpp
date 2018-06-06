@@ -23,8 +23,6 @@
 
 const int ECGSender::ECG_CHOP_BITS = 5;
 
-
-
 ECGSender::ECGSender(Packetizer &iPacketizer):
 	compressFifo((char*)compressBuffer, ECG_COMPRESS_OUTPUT_BUFFER_SIZE),
 	compressor(compressFifo, ecgPredictor),
@@ -39,7 +37,7 @@ ECGSender::ECGSender(Packetizer &iPacketizer):
 ECGSender::~ECGSender() {
 }
 
-void ECGSender::send(){
+void ECGSender::send(Serial *pc){
 	//Create header and calculate data size
 	uint8_t header[Packetizer::HEADER_SIZE + sizeof(ECGHeader)];
 	ECGHeader *ecgHeader = (ECGHeader *)(header + Packetizer::HEADER_SIZE);
@@ -88,10 +86,13 @@ void ECGSender::send(){
 	ecgHeader->numBits = compressFifo.getAvailableBits();
 	size = (ecgHeader->numBits+7) / 8;
 
+    pc->printf("Sending packet.\n");
 
 	//Send header
 	packetizer->startPacket(header, Packetizer::ECG, (uint16_t)(size+sizeof(ECGHeader)));
 	packetizer->checksumBlock((uint8_t*)ecgHeader, sizeof(ECGHeader));
+    
+    pc->printf("Packet size: %d \n", (Packetizer::HEADER_SIZE + sizeof(ECGHeader)));
     /*
 	if (Bluetooth::instance().send((char*)header, Packetizer::HEADER_SIZE + sizeof(ECGHeader), TIME_INF, false)<=0){
 		return;
@@ -99,6 +100,8 @@ void ECGSender::send(){
     */
 
 	packetizer->checksumBlock(compressBuffer, size);
+
+    pc->printf("\nCompressBuffer Size: %d\n", size);
 	/*
     if (Bluetooth::instance().send((char*)compressBuffer, size, TIME_INF, false)<=0){
 		return;
@@ -106,6 +109,8 @@ void ECGSender::send(){
     */
 	//Send checksum
 	Packetizer::Checksum chksum = packetizer->getChecksum();
+
+    pc->printf("\nCompressBuffer Size: %d\n", size);
 	/*
     if (Bluetooth::instance().send((char*)&chksum, sizeof(chksum), TIME_INF, false)<=0){
 		return;
@@ -113,4 +118,8 @@ void ECGSender::send(){
     */
 	//Start transmit if not running yet
 	//Bluetooth::instance().send(NULL,0);
+    pc->printf("Size: %d\n", size); 
+    pc->printf("Length: %d\n", (uint16_t)(size+sizeof(ECGHeader)));
+    pc->printf("Checksum is %d\n", chksum);
+
 }
