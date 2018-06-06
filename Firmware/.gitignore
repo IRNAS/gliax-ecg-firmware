@@ -1,5 +1,0 @@
-output
-eclipseWorkspace/MobilECG/output
-*.rej
-makefile.local
-eclipseWorkspace/MobilECG/makefile.local
