@@ -25,12 +25,17 @@
 #include <Logger.h>
 #include <Packetizer.h>
 #include <ECGSender.h>
+#include "FastPWM.h"
 
 DigitalOut led1(PB_6);
 DigitalOut led2(PB_7);
 
 DigitalOut en2v8(PC_1);
 DigitalOut en3v3(PB_8);
+
+//TIM_HandleTypeDef tim;
+//PwmOut clk(PA_10);
+FastPWM clk(PA_10,1);
 
 Serial pc(PA_2, PA_3);
 
@@ -50,12 +55,23 @@ void mainTaskCallback(void const *args)
     //Initialize UART here
     pc.baud(115200);
     pc.printf("Test started\n");
-
-	//Turn on ECG clock
-	TIM_HandleTypeDef tim;
+    
+    //Turn on ECG clock	
+    clk.period_ticks(50);	// chip frequency = 100 mhz / 50 = 2 mhz (which ads chip needs)
+    clk.pulsewidth_ticks(25);
+	/*
 	tim.Instance = TIM1;
+	tim.Init.Prescaler = 10-1;
+	tim.Init.CounterMode = TIM_COUNTERMODE_UP;
+  	tim.Init.Period = 5-1;
+    tim.Init.ClockDivision = 0;
+    tim.Init.RepetitionCounter = 0;
+    HAL_TIM_PWM_Init(&tim);
+    
+    HAL_TIM_Base_Start(&tim);
 	HAL_TIM_PWM_Start(&tim, TIM_CHANNEL_3);
-
+	*/
+	
 	if (!ADS1298::instance().start(&pc))
     {
         pc.printf("ADS1298 not started!!!\n");
@@ -106,7 +122,7 @@ int main()
     //Enable 2V8 and 3V3 power supply
 	en2v8 = 0;
     en3v3 = 1;
-
+    
     osThreadCreate(osThread(ledTaskCallback), NULL);
     osThreadCreate(osThread(mainTaskCallback), NULL);
     //Run OS
