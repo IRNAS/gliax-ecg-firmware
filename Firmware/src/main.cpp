@@ -18,7 +18,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// Handle OS later
 #include "mbed.h"
 #include "cmsis_os.h"
 #include <ADS1298.h>
@@ -26,6 +25,8 @@
 #include <Packetizer.h>
 #include <ECGSender.h>
 #include "FastPWM.h"
+
+//#define DEBUG
 
 DigitalOut led1(PB_6);
 DigitalOut led2(PB_7);
@@ -54,7 +55,9 @@ void mainTaskCallback(void const *args)
 
     //Initialize UART here
     pc.baud(115200);
-    pc.printf("Test started\n");
+    #ifdef DEBUG
+		pc.printf("Test started\n");
+	#endif
     
     //Turn on ECG clock	
     clk.period_ticks(50);	// chip frequency = 100 mhz / 50 = 2 mhz (which ads chip needs)
@@ -74,7 +77,9 @@ void mainTaskCallback(void const *args)
 	
 	if (!ADS1298::instance().start(&pc))
     {
-        pc.printf("ADS1298 not started!!!\n");
+        #ifdef DEBUG
+			pc.printf("ADS1298 not started!!!\n");
+		#endif
 		Logger::panic("Failed to initialize ADS1298.");
     }
 	while(1)
@@ -89,10 +94,16 @@ void mainTaskCallback(void const *args)
 
 		if (ADS1298::instance().getAvailableData() < 512)
         {
+			#ifdef DEBUG
+				pc.printf("Not enough data available...\n");
+			#endif
 			osDelay(10);
 			continue;
 		}
-
+		
+		#ifdef DEBUG
+			pc.printf("Sending data to pc...\n");
+		#endif
 		ecgSender.send(&pc);
 	}
 }

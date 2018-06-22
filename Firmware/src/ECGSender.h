@@ -51,7 +51,6 @@ private:
 	static const int ECG_CHOP_BITS;
 	float currFrequency;
 
-
 	TestSignalGenerator testGenerator;
 };
 

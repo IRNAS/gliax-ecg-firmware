@@ -24,8 +24,6 @@
 #include "Logger.h"
 #include "cmsis_os.h"
 
-SPI spi(PB_15, PB_14, PB_13, PB_12);
-
 #define HR 0x80
 
 #define C2_INTERNAL_TEST_SINGAL_ON (1<<4)
@@ -69,26 +67,37 @@ SPI spi(PB_15, PB_14, PB_13, PB_12);
 #define WCT2_WCTC_CHANNEL4_POS 6
 #define WCT2_WCTC_CHANNEL4_NEG 7
 
-const float ADS1298::ECG_LSB_IN_MV = 0.0001430511475f;
-
 #define CH_GAIN_OFFSET 4
 
+//#define DEBUG
+
+const float ADS1298::ECG_LSB_IN_MV = 0.0001430511475f;
+
+SPI spi(PB_15, PB_14, PB_13);	// mosi, miso, sclk
+DigitalOut cs(PB_12);	// spi cs
+
+InterruptIn drdy(PA_4); // interrupt for data available pin
+
+void InterruptHandler() {		// new interrupt function
+	ADS1298::instance().interrupt();
+}
 
 ADS1298::ADS1298():
         reset(PA_6, 1),
-        pwdn(PA_7, 1),
-        pinStart(PB_10),
+        pwdn(PA_7),
+        pinStart(PB_10,0),
         diffSel(PC_4)
 {
 	diffSel = 0;
 	memset(zeroBuffer, 0, ADS1298_MAX_PACKET_LENGTH);
 	dmaRunning=false;
 	//Default PGA is 6
-	currLsbInMv = ECG_LSB_IN_MV / 6.0;
+	currLsbInMv = ECG_LSB_IN_MV / 6.0f;
 
     //Init SPI
-    spi.format(8, 3);
-    spi.frequency(1000000);
+    cs = 1;	// chip is deselected
+    spi.format(8, 1);	// num. ob bits, mode 0 (means polarity=0 in phase=1)
+    spi.frequency(1000000);	// SPI frequency 1 MHz
 }
 
 ADS1298& ADS1298::instance(){
@@ -103,8 +112,9 @@ void ADS1298::writeReg(Register reg, uint8_t value){
 	writeBuf[2]=value;
 
 	uint8_t readBuf[3];
-
+	cs = 0;
 	spi.write((const char *)writeBuf, sizeof(writeBuf), (char *)readBuf, sizeof(readBuf));
+	cs = 1;
 }
 
 uint8_t ADS1298::readReg(Register reg){
@@ -114,42 +124,48 @@ uint8_t ADS1298::readReg(Register reg){
 	writeBuf[2]=0;
 
 	uint8_t readBuf[3];
-
+	cs = 0;
 	spi.write((const char *)writeBuf, sizeof(writeBuf), (char *)readBuf, sizeof(readBuf));
-
+	cs = 1;
  	return readBuf[2];
 }
 
 void ADS1298::sendCommand(Command cmd){
 	char data=cmd;
 	char dummy;
+	cs = 0;
 	spi.write((const char *)(&data), sizeof(data), &dummy, sizeof(dummy));
+	cs = 1;
 //	HAL_SPI_TransmitReceive(&hspi2, &data, &dummy, 1, HAL_MAX_DELAY);
 }
 
 bool ADS1298::start(Serial *pc){
-	pinStart = 0;
-	reset = 0;
-	pwdn = 0;
-pc->printf("Point 1\n");
+	pwdn = 1;	// power on chip
+	#ifdef DEBUG
+		pc->printf("Point 1\n");
+	#endif
 	osDelay(100);
-
-	//reset = 1;
+	
+	reset = 0;	// reset chip
 	osDelay(20);
 	reset = 1;
-    pinStart = 1;
-    pwdn = 1;
-
-pc->printf("Point 2\n");
-	osDelay(20);
+	#ifdef DEBUG
+		pc->printf("Point 2\n");
+	#endif
+	
+	osDelay(20);	// send command
 	sendCommand(CMD_SDATAC);
 	osDelay(20);
-    
-pc->printf("Point 3\n");
+	#ifdef DEBUG
+		pc->printf("Point 3\n");
+	#endif
+	
 	uint8_t id = readReg(REG_ID);
+	pc->printf("device ID: %d\n", id);
 	if ((id >> 3) != 0x12 && (id >> 3)!= 0x1A){
 		//Wrong device signature
 		stop();
+		pc->printf("Wrong device signature\n");
 		return false;
 	}
 
@@ -157,6 +173,7 @@ pc->printf("Point 3\n");
 	if (nHardwareChannels > 2){
 		//Wrong channel number
 		stop();
+		pc->printf("Wrong channel number\n");
 		return false;
 	}
 
@@ -167,6 +184,9 @@ pc->printf("Point 3\n");
 	int bufSize=ecgBuffer.maxSize();
 	bufSize -= bufSize % dataTransferSize;
 	ecgBuffer.resize(bufSize-1);
+	#ifdef DEBUG
+		pc->printf("Selected channels: %d\n", selectedChannels);
+	#endif
 
 	uint8_t rldChannels = (1 << 1) | (1 << 2);
 	writeReg(REG_RLD_SENSN, rldChannels);
@@ -199,16 +219,16 @@ pc->printf("Point 3\n");
 
 	//Magic
 	uint8_t conf2 = 0;
-#ifdef TEST_SIGNAL
-	conf2 += C2_INTERNAL_TEST_SINGAL_ON;
-#endif
+	#ifdef TEST_SIGNAL
+		conf2 += C2_INTERNAL_TEST_SINGAL_ON;
+	#endif
 	writeReg(REG_CONFIG2, conf2);
-
+	
 	sendCommand(CMD_START);
 	sendCommand(CMD_RDATAC);
 
 	enableIrq();
-
+	
 	return true;
 }
 
@@ -243,14 +263,15 @@ void ADS1298::interrupt(){
 	}
 
 	dmaRunning=true;
+	cs = 0;
 	spi.write((const char *)zeroBuffer, dataTransferSize, (char *)buffer, dataTransferSize);
+	cs = 1;
 	//HAL_SPI_TransmitReceive_DMA(&hspi2,  (uint8_t*)zeroBuffer, (uint8_t*)buffer, dataTransferSize);
 }
 
 void ADS1298::stop(){
 	disableIrq();
 	dmaRunning=false;
-
 	sendCommand(CMD_SDATAC);
 	osDelay(20);
 	sendCommand(CMD_STOP);
@@ -297,20 +318,24 @@ uint8_t ADS1298::getActiveChannels(){
 }
 
 void ADS1298::disableIrq(){
-	HAL_NVIC_DisableIRQ(EXTI4_IRQn);
+	//HAL_NVIC_DisableIRQ(EXTI4_IRQn);
+	drdy.fall(NULL);
 }
 
 void ADS1298::enableIrq(){
-	NVIC_ClearPendingIRQ(EXTI4_IRQn);
-	__HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_4);
-	HAL_NVIC_EnableIRQ(EXTI4_IRQn);
+	//NVIC_ClearPendingIRQ(EXTI4_IRQn);
+	//__HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_4);
+	//HAL_NVIC_EnableIRQ(EXTI4_IRQn);
+	drdy.fall(&InterruptHandler);	// drdy goes low when new data is available
 }
 
-extern "C" void EXTI4_IRQHandler(void){
+/*
+extern "C" void EXTI4_IRQHandler(void){		// not working on mbed
 	ADS1298::instance().interrupt();
 	NVIC_ClearPendingIRQ(EXTI4_IRQn);
 	__HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_4);
 }
+*/
 
 float ADS1298::getLsbInMv(){
 	return currLsbInMv;
@@ -349,9 +374,9 @@ void ADS1298::setGain(int gain){
 
 	for (int a=0; a<8; a++){
 		uint8_t value = (g<<CH_GAIN_OFFSET);
-#ifdef TEST_SIGNAL
+	#ifdef TEST_SIGNAL
 		value += 5;
-#endif
+	#endif
 		writeReg(chSetReg(a), value);
 	}
 }

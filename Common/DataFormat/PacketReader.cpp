@@ -117,7 +117,7 @@ bool PacketReader::packetReceived() {
 	return index == sizeof(Packetizer::Header) + header->length + 2;
 }
 
-static uint8_t pina;
+//static uint8_t pina;
 bool PacketReader::isPacketOkay() {
 	Packetizer::Header* header = getPacketHeader();
 	#ifdef DEBUG

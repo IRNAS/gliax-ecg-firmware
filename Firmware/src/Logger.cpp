@@ -24,7 +24,6 @@
 
 Logger::Logger() {
 	// TODO Auto-generated constructor stub
-
 }
 
 Logger::~Logger() {
@@ -33,8 +32,6 @@ Logger::~Logger() {
 
 void Logger::panic(const char *message){
 	UNUSED(message);
-
-    //@todo: MBED how to disable all IRQs
-//	__disable_irq();
+	__disable_irq();	//disable all IRQs
 	for(;;);
 }

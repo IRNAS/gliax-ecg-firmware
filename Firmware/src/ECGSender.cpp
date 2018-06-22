@@ -21,6 +21,8 @@
 #include "ECGSender.h"
 #include "ADS1298.h"
 
+//#define DEBUG
+
 const int ECGSender::ECG_CHOP_BITS = 5;
 
 ECGSender::ECGSender(Packetizer &iPacketizer):
@@ -85,41 +87,61 @@ void ECGSender::send(Serial *pc){
 
 	ecgHeader->numBits = compressFifo.getAvailableBits();
 	size = (ecgHeader->numBits+7) / 8;
-
-    pc->printf("Sending packet.\n");
+	#ifdef DEBUG
+		pc->printf("Sending packet.\n");
+	#endif
 
 	//Send header
 	packetizer->startPacket(header, Packetizer::ECG, (uint16_t)(size+sizeof(ECGHeader)));
 	packetizer->checksumBlock((uint8_t*)ecgHeader, sizeof(ECGHeader));
-    
-    pc->printf("Packet size: %d \n", (Packetizer::HEADER_SIZE + sizeof(ECGHeader)));
+	#ifdef DEBUG
+    	pc->printf("Packet size: %d \n", (Packetizer::HEADER_SIZE + sizeof(ECGHeader)));
+    #endif
     /*
 	if (Bluetooth::instance().send((char*)header, Packetizer::HEADER_SIZE + sizeof(ECGHeader), TIME_INF, false)<=0){
 		return;
 	}
     */
+    for (unsigned int i = 0; i < (Packetizer::HEADER_SIZE + sizeof(ECGHeader)); i++)
+    {
+        pc->putc(header[i]);
+    }
 
+	//Calculate checksum over compressBuffer and add to final checksum value
 	packetizer->checksumBlock(compressBuffer, size);
-
-    pc->printf("\nCompressBuffer Size: %d\n", size);
+	#ifdef DEBUG
+		pc->printf("\nCompressBuffer Size: %d\n", size);
+	#endif
 	/*
     if (Bluetooth::instance().send((char*)compressBuffer, size, TIME_INF, false)<=0){
 		return;
 	}
     */
+    for (unsigned int i = 0; i < size; i++)
+    {
+        pc->putc(compressBuffer[i]);
+	}
+	
 	//Send checksum
 	Packetizer::Checksum chksum = packetizer->getChecksum();
-
-    pc->printf("\nCompressBuffer Size: %d\n", size);
+	#ifdef DEBUG
+		pc->printf("\nCompressBuffer Size: %d\n", size);
+	#endif
 	/*
     if (Bluetooth::instance().send((char*)&chksum, sizeof(chksum), TIME_INF, false)<=0){
 		return;
 	}
     */
+    for (unsigned int i = 0; i < sizeof(chksum); i++)
+    {
+        pc->putc((char)((chksum >> (8*i)) & 0x00FF));
+	}
+	
 	//Start transmit if not running yet
 	//Bluetooth::instance().send(NULL,0);
-    pc->printf("Size: %d\n", size); 
-    pc->printf("Length: %d\n", (uint16_t)(size+sizeof(ECGHeader)));
-    pc->printf("Checksum is %d\n", chksum);
-
+	#ifdef DEBUG
+    	pc->printf("Size: %d\n", size); 
+    	pc->printf("Length: %d\n", (uint16_t)(size+sizeof(ECGHeader)));
+    	pc->printf("Checksum is %d\n", chksum);
+    #endif
 }
