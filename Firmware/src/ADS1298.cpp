@@ -19,10 +19,8 @@
  */
  
 #include "ADS1298.h"
-#include <Logger.h>
-#include <string.h>
 #include "Logger.h"
-#include "cmsis_os.h"
+#include <string.h>
 
 #define HR 0x80
 
@@ -96,7 +94,7 @@ ADS1298::ADS1298():
 
     //Init SPI
     cs = 1;	// chip is deselected
-    spi.format(8, 1);	// num. ob bits, mode 0 (means polarity=0 in phase=1)
+    spi.format(8, 1);	// num. ob bits, mode(means polarity=0 in phase=1)
     spi.frequency(1000000);	// SPI frequency 1 MHz
 }
 
@@ -136,7 +134,6 @@ void ADS1298::sendCommand(Command cmd){
 	cs = 0;
 	spi.write((const char *)(&data), sizeof(data), &dummy, sizeof(dummy));
 	cs = 1;
-//	HAL_SPI_TransmitReceive(&hspi2, &data, &dummy, 1, HAL_MAX_DELAY);
 }
 
 bool ADS1298::start(Serial *pc){
@@ -266,7 +263,6 @@ void ADS1298::interrupt(){
 	cs = 0;
 	spi.write((const char *)zeroBuffer, dataTransferSize, (char *)buffer, dataTransferSize);
 	cs = 1;
-	//HAL_SPI_TransmitReceive_DMA(&hspi2,  (uint8_t*)zeroBuffer, (uint8_t*)buffer, dataTransferSize);
 }
 
 void ADS1298::stop(){
@@ -318,24 +314,12 @@ uint8_t ADS1298::getActiveChannels(){
 }
 
 void ADS1298::disableIrq(){
-	//HAL_NVIC_DisableIRQ(EXTI4_IRQn);
 	drdy.fall(NULL);
 }
 
 void ADS1298::enableIrq(){
-	//NVIC_ClearPendingIRQ(EXTI4_IRQn);
-	//__HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_4);
-	//HAL_NVIC_EnableIRQ(EXTI4_IRQn);
 	drdy.fall(&InterruptHandler);	// drdy goes low when new data is available
 }
-
-/*
-extern "C" void EXTI4_IRQHandler(void){		// not working on mbed
-	ADS1298::instance().interrupt();
-	NVIC_ClearPendingIRQ(EXTI4_IRQn);
-	__HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_4);
-}
-*/
 
 float ADS1298::getLsbInMv(){
 	return currLsbInMv;

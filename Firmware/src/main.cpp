@@ -20,11 +20,11 @@
 
 #include "mbed.h"
 #include "cmsis_os.h"
-#include <ADS1298.h>
-#include <Logger.h>
-#include <Packetizer.h>
-#include <ECGSender.h>
 #include "FastPWM.h"
+#include "ADS1298.h"
+#include "Logger.h"
+#include "Packetizer.h"
+#include "ECGSender.h"
 
 //#define DEBUG
 
@@ -34,15 +34,9 @@ DigitalOut led2(PB_7);
 DigitalOut en2v8(PC_1);
 DigitalOut en3v3(PB_8);
 
-//TIM_HandleTypeDef tim;
-//PwmOut clk(PA_10);
-FastPWM clk(PA_10,1);
+FastPWM clk(PA_10,1);	// clock pin for ADS
 
-Serial pc(PA_2, PA_3);
-
-//This UART might be used for Bluetooth module, we will define new UART
-//for communication instead of Bluetooth
-//extern "C" UART_HandleTypeDef huart2;
+Serial pc(PA_2, PA_3);	// UART connection for sending data
 
 Packetizer dataPacketizer;
 ECGSender ecgSender(dataPacketizer);
@@ -62,18 +56,6 @@ void mainTaskCallback(void const *args)
     //Turn on ECG clock	
     clk.period_ticks(50);	// chip frequency = 100 mhz / 50 = 2 mhz (which ads chip needs)
     clk.pulsewidth_ticks(25);
-	/*
-	tim.Instance = TIM1;
-	tim.Init.Prescaler = 10-1;
-	tim.Init.CounterMode = TIM_COUNTERMODE_UP;
-  	tim.Init.Period = 5-1;
-    tim.Init.ClockDivision = 0;
-    tim.Init.RepetitionCounter = 0;
-    HAL_TIM_PWM_Init(&tim);
-    
-    HAL_TIM_Base_Start(&tim);
-	HAL_TIM_PWM_Start(&tim, TIM_CHANNEL_3);
-	*/
 	
 	if (!ADS1298::instance().start(&pc))
     {
@@ -84,14 +66,6 @@ void mainTaskCallback(void const *args)
     }
 	while(1)
     {
-        
-		//if (!Bluetooth::instance().isConnected()){
-		//	ADS1298::instance().clear();
-		//	OS::sleep(10);
-		//	continue;
-		//}
-        
-
 		if (ADS1298::instance().getAvailableData() < 512)
         {
 			#ifdef DEBUG
@@ -116,12 +90,10 @@ void ledTaskCallback(void const *args)
     {
 		led1 = 1;
 		led2 = 0;
-
 		osDelay(1000);
 
 		led1 = 0;
 		led2 = 1;
-
 		osDelay(1000);
 	}
 }
@@ -136,7 +108,6 @@ int main()
     
     osThreadCreate(osThread(ledTaskCallback), NULL);
     osThreadCreate(osThread(mainTaskCallback), NULL);
-    //Run OS
-    while (true);
+   
+    while (true);	 //Run OS
 }
-

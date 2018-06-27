@@ -19,8 +19,7 @@
  */
  
 #include "Logger.h"
-#include <cmsis_os.h>
-#include <helpers.h>
+#include "helpers.h"
 
 Logger::Logger() {
 	// TODO Auto-generated constructor stub

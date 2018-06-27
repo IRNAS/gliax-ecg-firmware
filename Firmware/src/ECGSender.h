@@ -22,12 +22,11 @@
 #define SRC_ECGSENDER_H
 
 #include <stdint.h>
-
 #include "Packetizer.h"
-#include <BitFifo.hpp>
-#include <DifferenceEcgCompressor.hpp>
-#include <FlatEcgPredictor.hpp>
-#include <ADS1298.h>
+#include "BitFifo.hpp"
+#include "DifferenceEcgCompressor.hpp"
+#include "FlatEcgPredictor.hpp"
+#include "ADS1298.h"
 #include "EcgHeaderCommon.h"
 #include "TestSignalGenerator.h"
 

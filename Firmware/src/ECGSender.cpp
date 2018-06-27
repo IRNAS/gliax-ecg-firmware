@@ -97,11 +97,7 @@ void ECGSender::send(Serial *pc){
 	#ifdef DEBUG
     	pc->printf("Packet size: %d \n", (Packetizer::HEADER_SIZE + sizeof(ECGHeader)));
     #endif
-    /*
-	if (Bluetooth::instance().send((char*)header, Packetizer::HEADER_SIZE + sizeof(ECGHeader), TIME_INF, false)<=0){
-		return;
-	}
-    */
+
     for (unsigned int i = 0; i < (Packetizer::HEADER_SIZE + sizeof(ECGHeader)); i++)
     {
         pc->putc(header[i]);
@@ -112,11 +108,7 @@ void ECGSender::send(Serial *pc){
 	#ifdef DEBUG
 		pc->printf("\nCompressBuffer Size: %d\n", size);
 	#endif
-	/*
-    if (Bluetooth::instance().send((char*)compressBuffer, size, TIME_INF, false)<=0){
-		return;
-	}
-    */
+
     for (unsigned int i = 0; i < size; i++)
     {
         pc->putc(compressBuffer[i]);
@@ -127,18 +119,12 @@ void ECGSender::send(Serial *pc){
 	#ifdef DEBUG
 		pc->printf("\nCompressBuffer Size: %d\n", size);
 	#endif
-	/*
-    if (Bluetooth::instance().send((char*)&chksum, sizeof(chksum), TIME_INF, false)<=0){
-		return;
-	}
-    */
+
     for (unsigned int i = 0; i < sizeof(chksum); i++)
     {
         pc->putc((char)((chksum >> (8*i)) & 0x00FF));
 	}
 	
-	//Start transmit if not running yet
-	//Bluetooth::instance().send(NULL,0);
 	#ifdef DEBUG
     	pc->printf("Size: %d\n", size); 
     	pc->printf("Length: %d\n", (uint16_t)(size+sizeof(ECGHeader)));
