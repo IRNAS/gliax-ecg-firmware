@@ -68,6 +68,7 @@
 #define CH_GAIN_OFFSET 4
 
 //#define DEBUG
+//#define TEST_SIGNAL
 
 const float ADS1298::ECG_LSB_IN_MV = 0.0001430511475f;
 
@@ -218,6 +219,7 @@ bool ADS1298::start(Serial *pc){
 	uint8_t conf2 = 0;
 	#ifdef TEST_SIGNAL
 		conf2 += C2_INTERNAL_TEST_SINGAL_ON;
+		conf2 += 1;		// change frequency to 2 Hz (otherwise is 1 Hz)
 	#endif
 	writeReg(REG_CONFIG2, conf2);
 	
