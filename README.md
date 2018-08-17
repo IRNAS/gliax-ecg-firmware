@@ -6,8 +6,7 @@ www.irnas.eu
 
 ## Compiling the code
 ### Online compiler
-Import code from URL (https://github.com/IRNAS/gliax-ecg-simulation-firmware).
-Select option "Update all libraries to the latest revision".
+Import code from URL (https://github.com/IRNAS/gliax-ecg-firmware.git).
 Select platform for which code will be compiled and hit "Compile" button.
 Online compiler will offer you to save hex file.
 
