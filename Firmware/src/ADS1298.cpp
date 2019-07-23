@@ -231,6 +231,16 @@ bool ADS1298::start(Serial *pc){
 	return true;
 }
 
+bool ADS1298::setNormalMode() {
+	uint8_t conf2 = 0;
+	writeReg(REG_CONFIG2, conf2);
+	
+	sendCommand(CMD_START);
+	sendCommand(CMD_RDATAC);
+	
+	return true;
+}
+
 float ADS1298::setSpeed(SpeedDiv div, bool highRes){
 	float fmod=((float)FCLK) / (highRes ? 4 : 8);
 
