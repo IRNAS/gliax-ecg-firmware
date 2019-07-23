@@ -56,6 +56,7 @@ class ADS1298 {
 
 		bool start(Serial *pc);
 		void stop();
+		bool setNormalMode();
 
 		void interrupt();
 		uint32_t getSampleId();

@@ -56,6 +56,8 @@ void mainTaskCallback(void const *args)
     //Turn on ECG clock	
     clk.period_ticks(50);	// chip frequency = 100 mhz / 50 = 2 mhz (which ads chip needs)
     clk.pulsewidth_ticks(25);
+    //uint8_t test = 0; 
+    
 	
 	if (!ADS1298::instance().start(&pc))
     {
@@ -79,6 +81,16 @@ void mainTaskCallback(void const *args)
 			pc.printf("Sending data to pc...\n");
 		#endif
 		ecgSender.send(&pc);
+		
+		/*
+		if (test == 100) {
+			if (!ADS1298::instance().setNormalMode()) {
+				pc.printf("Fafen.\n");
+			}
+			pc.printf("Switching to normal mode...\n");
+		}
+		test++;
+		*/
 	}
 }
 
