@@ -27,7 +27,7 @@ The chip for ECG measurements needs to be turned on by CP2102N. This configurati
 
 Procedure:
 * connect the board to PC with USB cable
-* open Simplicity Studio and create new project (configure chip CP2102 revision: A02-new or A01-old chip)
+* open Simplicity Studio and create new project (configure chip CP2102N revision: A02-new or A01-old chip)
 * Open Port configuration: Serial
 * Change pin GPIO5 both modes to Push-Pull and reset Latch to High
 * Press Program to device
